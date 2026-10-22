@@ -1,0 +1,114 @@
+# Revenue Intelligence Inbox
+
+A browser-based workspace that helps a sales manager review calls and meetings, read transcripts, route conversations, and keep trustworthy numbers as new data deliveries arrive.
+
+**Live demo:** https://hazsha28.github.io/revenue-intelligence-inbox/
+
+## Why this exists
+
+Sales data rarely arrives in one clean file. A later delivery can correct an earlier one, and a manager's own decisions must not be lost when it does. This app focuses on handling that carefully: no duplicate records, no silently overwritten overrides, and no invented evidence.
+
+## Features
+
+- **Dashboard:** live metrics for calls, meetings, usable transcripts, connection rates, routes and processing status.
+- **Intelligence Inbox:** searchable, filterable table of every record (type, route, transcript availability, review state).
+- **Record Detail:** source metadata, the actual transcript, summary, topics, issues, risks and follow-ups, with evidence references.
+- **Manager Brief:** a daily summary of themes and open issues that separates confirmed facts from inferred suggestions.
+- **Risk Radar and Action Center:** spot risky conversations and track follow-up actions.
+- **Routing and Review:** compare the suggested route with the effective route, apply manual overrides, and mark records reviewed.
+- **Imports and Replay:** import deliveries, re-import, reset, and inspect an activity log of applied, ignored and updated records. A Replay Inspector shows the sequence step by step.
+- **Data Quality and Data Status:** check the health of the loaded data.
+- **Exports:** JSON and CSV manifests that reflect the current state, with relative output paths.
+
+## How data is handled
+
+| Rule | Behaviour |
+|------|-----------|
+| Record identity | `(source_type, source_id)` only, never title, phone or row position |
+| Same or older revision | Ignored, so repeated imports are idempotent |
+| Newer revision | Replaces the whole payload and transcript, nulls included (no partial merge) |
+| Manual route and notes | Preserved through updates |
+| Changed transcript | Analysis is marked stale and the record goes back for review |
+| Multi-route records | Allowed, without inflating the unique record count |
+| Persistence | Browser `localStorage`, so state survives refreshes |
+
+### Route taxonomy
+
+`sales_new`, `sales_followup`, `partnership`, `customer_support`, `product_issue`, `integration`, `payments_billing`, `compliance_kyc`, `internal`, `no_contact`, `unclassified`
+
+Routes are suggested by deterministic rules on transcript content and source metadata. A manager can override any of them.
+
+## Sample data findings
+
+Running the app's own logic over the two bundled deliveries gives:
+
+- 44 unique records (30 calls, 14 meetings)
+- 17 records with usable text after delivery 1, and 18 after the update
+- 11 of 30 calls connected (source-reported)
+- 22 records routed to No Contact; route counts total more than 44 because some records belong to several routes
+
+## Tech stack
+
+React 18, TypeScript, Vite, Tailwind CSS, Recharts, React Router v6, and Vitest with Testing Library. There is no backend, database or paid API.
+
+## Getting started
+
+Requires Node.js 20 or newer.
+
+```bash
+cd app
+npm install
+npm run dev
+```
+
+Other scripts:
+
+```bash
+npm run build      # type-check and build for production
+npm run preview    # serve the production build locally
+npm test           # run the Vitest suite once
+npm run test:watch # run tests in watch mode
+```
+
+## Replay check
+
+To see the revision handling work:
+
+1. Import the initial delivery (44 records).
+2. Re-import it, and nothing changes.
+3. Set a manual route override on record M07.
+4. Import the update delivery. M07 moves to revision 2 and usable texts become 18.
+5. Import the initial delivery again. M07 stays on revision 2 and keeps its override.
+6. Refresh the browser, and all state persists.
+7. M07's analysis shows as stale or pending review.
+
+## Project structure
+
+```
+.
+├── .github/workflows/deploy.yml   # GitHub Pages deployment
+├── .kiro/specs/                   # requirements, design and task notes
+└── app/
+    ├── src/
+    │   ├── components/            # reusable UI pieces
+    │   ├── pages/                 # route-level screens
+    │   ├── lib/                   # import engine, routing, metrics, evidence, export, storage
+    │   ├── data/                  # bundled delivery JSON files
+    │   ├── types/                 # TypeScript types
+    │   └── test/                  # unit tests
+    └── vite.config.ts
+```
+
+## Deployment
+
+Pushing to `main` triggers the GitHub Actions workflow, which installs dependencies, builds the app, copies `index.html` to `404.html` for client-side routing, and publishes `app/dist` to GitHub Pages. The Vite `base` is set to `/revenue-intelligence-inbox/`, so change it if you rename the repository.
+
+## Limitations
+
+- State lives in one browser, so there is no sharing across devices or team review history.
+- Analysis is rule-based and evidence-grounded, not generated by a language model.
+- The bundled sample is small, so treat metrics as a sample rather than a population.
+
+## Specs
+
+Detailed requirements, design notes and the task list are in [`.kiro/specs/revenue-intelligence-inbox/`](.kiro/specs/revenue-intelligence-inbox/).
